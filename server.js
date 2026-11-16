@@ -12,6 +12,7 @@ const PUBLIC_DIR = path.join(ROOT, 'public');
 
 const MAX_BODY_BYTES = 12 * 1024 * 1024;
 const RATE_LIMIT = { max: 30, windowMs: 10 * 60 * 1000 };
+const FAILED_AUTH_LIMIT = { max: 10, windowMs: 10 * 60 * 1000 };
 const IMAGE_RE = /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/;
 
 const MIME = {
@@ -190,6 +191,19 @@ async function askOpenRouter(config, images) {
 
 export function createApp(config) {
   const hits = new Map();
+  const failures = new Map();
+
+  function recentFailures(ip) {
+    const now = Date.now();
+    const recent = (failures.get(ip) || []).filter((t) => now - t < FAILED_AUTH_LIMIT.windowMs);
+    failures.set(ip, recent);
+    return recent;
+  }
+
+  function recordFailure(ip) {
+    recentFailures(ip).push(Date.now());
+    if (failures.size > 5000) failures.clear();
+  }
 
   function rateLimited(ip) {
     const now = Date.now();
@@ -208,13 +222,17 @@ export function createApp(config) {
     if (!config.apiKey) {
       return send(res, 503, { error: 'Photo reading is not set up on the server (no OpenRouter key).' });
     }
+    const ip = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket.remoteAddress;
     if (config.appPassword) {
+      if (recentFailures(ip).length >= FAILED_AUTH_LIMIT.max) {
+        return send(res, 429, { error: 'Too many requests. Try again in a few minutes.' });
+      }
       const given = String(req.headers['x-app-password'] || '');
       if (!safeEqual(given, config.appPassword)) {
+        recordFailure(ip);
         return send(res, 401, { error: 'Wrong or missing app password.' });
       }
     }
-    const ip = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket.remoteAddress;
     if (rateLimited(ip)) {
       return send(res, 429, { error: 'Too many requests. Try again in a few minutes.' });
     }

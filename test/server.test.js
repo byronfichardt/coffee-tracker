@@ -126,3 +126,14 @@ test('model replies are parsed leniently and normalised strictly', () => {
   assert.equal(clean.origin, '');
   assert.equal(clean.variety, 'SL28, SL34');
 });
+
+test('repeated wrong passwords get blocked, even for the right password', async (t) => {
+  const locked = await start({ apiKey: 'k', baseUrl: 'http://127.0.0.1:1', appPassword: 'beans' });
+  t.after(locked.close);
+
+  for (let i = 0; i < 10; i++) {
+    assert.equal((await post(locked.url, { images: [PHOTO] }, { 'X-App-Password': `guess${i}` })).status, 401);
+  }
+  assert.equal((await post(locked.url, { images: [PHOTO] }, { 'X-App-Password': 'guess11' })).status, 429);
+  assert.equal((await post(locked.url, { images: [PHOTO] }, { 'X-App-Password': 'beans' })).status, 429);
+});
