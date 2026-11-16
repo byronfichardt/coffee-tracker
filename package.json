@@ -1,0 +1,15 @@
+{
+  "name": "coffee-tracker",
+  "version": "1.0.0",
+  "description": "A small PWA for tracking coffees and dialling in espresso.",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "PORT=8080 STORAGE_DIR=./storage node --watch server.js",
+    "test": "node --test"
+  }
+}

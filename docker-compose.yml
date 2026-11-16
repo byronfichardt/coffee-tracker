@@ -1,0 +1,17 @@
+services:
+  coffee-tracker:
+    build: .
+    image: coffee-tracker
+    restart: unless-stopped
+    ports:
+      - "${HOST_PORT:-8080}:80"
+    environment:
+      # Values come from a .env file next to this one (see .env.example).
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      OPENROUTER_MODEL: ${OPENROUTER_MODEL:-}
+      APP_PASSWORD: ${APP_PASSWORD:-}
+    volumes:
+      - storage:/storage
+
+volumes:
+  storage:
