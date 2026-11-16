@@ -1,0 +1,38 @@
+service: coffee-tracker
+image: byronfichardt/coffee-tracker
+
+servers:
+  web:
+    hosts:
+      - 204.168.132.32
+    cmd: node server.js
+
+proxy:
+  ssl: true
+  host: coffee-tracker.byronfichardt.com
+  app_port: 80
+  healthcheck:
+    path: /up
+    interval: 3
+    timeout: 120
+  response_timeout: 30
+  run:
+    metrics_port: 1318
+
+registry:
+  server: ghcr.io
+  username: byronfichardt
+  password:
+    - KAMAL_REGISTRY_PASSWORD
+
+builder:
+  arch: amd64
+
+env:
+  clear:
+    NODE_ENV: production
+    PORT: "80"
+    STORAGE_DIR: /storage
+  secret:
+    - OPENROUTER_API_KEY
+    - APP_PASSWORD
